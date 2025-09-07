@@ -92,10 +92,10 @@ extension View {
   ///    }
   ///  }
   ///  ```
-  public func `if`<TC, EC>(
+  public func `if`<TC>(
     _ condition: Bool,
     @ViewBuilder then thenModifier: @escaping (Self) -> TC
-  ) -> some View where TC: View, EC: View {
+  ) -> some View where TC: View {
     modifier(
       IfElseViewModifier(
         condition: condition,
