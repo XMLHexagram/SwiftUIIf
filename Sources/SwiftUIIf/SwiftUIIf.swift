@@ -7,17 +7,17 @@
 
 import SwiftUI
 
-private struct IfElseViewModifier<TC, EC>: ViewModifier
-where TC: View, EC: View {
+private struct IfElseViewModifier<IC: View, TC: View, EC: View>: ViewModifier {
   let condition: Bool
-  @ViewBuilder let thenModifier: (AnyView) -> TC
-  @ViewBuilder let elseModifier: (AnyView) -> EC
+  let view: IC
+  let thenModifier: (IC) -> TC
+  let elseModifier: (IC) -> EC
 
-  public func body(content: Content) -> some View {
+  func body(content: Content) -> some View {
     if condition {
-      thenModifier(AnyView(content))
+      thenModifier(view)
     } else {
-      elseModifier(AnyView(content))
+      elseModifier(view)
     }
   }
 }
@@ -46,14 +46,27 @@ extension View {
   ///   }
   /// }
   /// ```
+  //  @ViewBuilder
+  //  public func `if`<TC, EC>(
+  //    _ condition: Bool,
+  //    @ViewBuilder then thenModifier: (Self) -> TC,
+  //    @ViewBuilder else elseModifier: (Self) -> EC
+  //  ) -> some View where TC: View, EC: View {
+  //    if condition {
+  //      thenModifier(self)
+  //    } else {
+  //      elseModifier(self)
+  //    }
+  //  }
   public func `if`<TC, EC>(
     _ condition: Bool,
-    @ViewBuilder then thenModifier: @escaping (AnyView) -> TC,
-    @ViewBuilder else elseModifier: @escaping (AnyView) -> EC
+    @ViewBuilder then thenModifier: @escaping (Self) -> TC,
+    @ViewBuilder else elseModifier: @escaping (Self) -> EC
   ) -> some View where TC: View, EC: View {
     modifier(
       IfElseViewModifier(
         condition: condition,
+        view: self,
         thenModifier: thenModifier,
         elseModifier: elseModifier
       )
@@ -79,13 +92,14 @@ extension View {
   ///    }
   ///  }
   ///  ```
-  public func `if`<TC>(
+  public func `if`<TC, EC>(
     _ condition: Bool,
-    @ViewBuilder then thenModifier: @escaping (AnyView) -> TC
-  ) -> some View where TC: View {
+    @ViewBuilder then thenModifier: @escaping (Self) -> TC
+  ) -> some View where TC: View, EC: View {
     modifier(
       IfElseViewModifier(
         condition: condition,
+        view: self,
         thenModifier: thenModifier,
         elseModifier: { $0 }
       )
@@ -118,15 +132,18 @@ extension View {
   /// ```
   public func `if`<TC, EC, E>(
     `let` optionalExpression: E?,
-    @ViewBuilder then thenModifier: @escaping (AnyView, E) -> TC,
-    @ViewBuilder else elseModifier: @escaping (AnyView) -> EC
+    @ViewBuilder then thenModifier: @escaping (Self, E) -> TC,
+    @ViewBuilder else elseModifier: @escaping (Self) -> EC
   ) -> some View where TC: View, EC: View {
     modifier(
-      IfElseViewModifier(condition: optionalExpression != nil) { view in
-        thenModifier(view, optionalExpression!)
-      } elseModifier: { view in
-        elseModifier(view)
-      }
+      IfElseViewModifier(
+        condition: optionalExpression != nil,
+        view: self,
+        thenModifier: {
+          thenModifier($0, optionalExpression!)
+        },
+        elseModifier: elseModifier
+      )
     )
   }
 
@@ -153,14 +170,17 @@ extension View {
   /// ```
   public func `if`<TC, E>(
     `let` optionalExpression: E?,
-    @ViewBuilder then thenModifier: @escaping (AnyView, E) -> TC,
+    @ViewBuilder then thenModifier: @escaping (Self, E) -> TC,
   ) -> some View where TC: View {
     modifier(
-      IfElseViewModifier(condition: optionalExpression != nil) { view in
-        thenModifier(view, optionalExpression!)
-      } elseModifier: {
-        $0
-      }
+      IfElseViewModifier(
+        condition: optionalExpression != nil,
+        view: self,
+        thenModifier: {
+          thenModifier($0, optionalExpression!)
+        },
+        elseModifier: { $0 }
+      )
     )
   }
 }
